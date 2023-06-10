@@ -1,6 +1,9 @@
-import { App, CfnOutput, Duration, Stack, StackProps } from 'aws-cdk-lib';
+import { App, CfnOutput, Duration, RemovalPolicy, Stack, StackProps } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
+import { DatabaseInstance, DatabaseInstanceEngine, PostgresEngineVersion } from 'aws-cdk-lib/aws-rds';
+import { Bucket, BucketEncryption } from 'aws-cdk-lib/aws-s3';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
 
 export class CdkPracticeStack extends Stack {
 
@@ -13,37 +16,65 @@ export class CdkPracticeStack extends Stack {
       }
     });
 
-    /* Defining VPC */
-    const vpc = new ec2.Vpc(this, 'VPC', {
-      maxAzs: 2,
-      subnetConfiguration: [
-        {
-          subnetType: ec2.SubnetType.PUBLIC,
-          name: 'PublicSubnet',
-        }]
-    });
-
-    /* Defining security groups */
-    // const securityGroup = new ec2.SecurityGroup(this, 'PracticeInstanceSecurityGroup', {
+    /* Creating EC2 Instance */
+    // const vpc = new ec2.Vpc(this, 'MyVpc', {
+    //   maxAzs:2,
+    //   natGateways: 0,
+    //   subnetConfiguration: [{
+    //     name: 'public',
+    //     cidrMask: 24,
+    //     subnetType: ec2.SubnetType.PUBLIC,
+    //   },{
+    //     name:'private',
+    //     cidrMask: 24,
+    //     subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS
+    //   }]
+    // });
+    // const ec2Instance = new ec2.Instance(this, 'MyInstance', {
     //   vpc,
-    //   allowAllOutbound: true /* allow all outbound traffic */
+    //   instanceType: new ec2.InstanceType('t2.micro'),
+    //   machineImage: ec2.MachineImage.genericLinux({ 'sa-east-1': ':ami-000001' }),
+    //   keyName:'who-create-key'
     // })
-    // /* Setting inboud rules */
-    // securityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(22), 'Allow SSH access');
-    // securityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(80), 'Allow HTTP access')
 
-    /* Defining EC2 instance */
-    const instance = new ec2.Instance(this, 'PracticeInstance', {
-      vpc,
-      instanceType: new ec2.InstanceType('t2.micro'),
-      machineImage: ec2.MachineImage.genericLinux({
-        'ap-south-1': 'ami-000001'
-      })
+    /* Creating RDS instance */
+    // const rdsInstance = new DatabaseInstance(this, 'MyRdsInstance', {
+    //   vpc,
+    //   engine: DatabaseInstanceEngine.postgres({
+    //     version: PostgresEngineVersion.VER_15_3
+    //   }),
+    //   instanceType: ec2.InstanceType.of(ec2.InstanceClass.BURSTABLE2, ec2.InstanceSize.SMALL),
+    //   allocatedStorage: 20,
+    //   databaseName: 'mydatabase',
+    //   credentials: {
+    //     username: 'admin'
+    //   }
+    // });
+
+    /* Create S3 bucket */
+    const bucket = new Bucket(this, 'MyBucket', {
+      bucketName: 'my-bucket-unique-name',
+      removalPolicy: RemovalPolicy.DESTROY,
     })
 
-    /* Ouput for public IP address of the instance */
-    new CfnOutput(this, 'EC2InstancePublicId', {
-      value: instance.instancePublicIp
-    });
+    /* Outputs */
+    // new CfnOutput(this, 'EC2InstanceOutput', { value: ec2Instance.instancePublicIp });
+    // new CfnOutput(this, 'RDSEndpointOutput', { value: rdsInstance.dbInstanceEndpointAddress });
+    new CfnOutput(this, 'S3Bucket', { value: bucket.bucketName });
+
+
+    // const myFunction = new lambda.Function(this, 'MyFunction', {
+    //   runtime: lambda.Runtime.NODEJS_18_X,
+    //   code: lambda.Code.fromInline(`exports.handler = function(event, context) {
+    //     console.log("Hello, CDK!");
+    //     context.succeed("Hello, CDK!");
+    //   };`),
+    //   handler: 'index.handler',
+    // });
+
+    // // Output the ARN (Amazon Resource Name) of the Lambda function
+    // new CfnOutput(this, 'MyFunctionArn', {
+    //   value: myFunction.functionArn,
+    // });
   }
 }
